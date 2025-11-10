@@ -68,9 +68,25 @@ def download_file(url, filename):
                     st.info("This usually means GitHub is redirecting to a download page")
                     return False
                 
-                # Download the file
+                # Get file size for progress
+                content_length = response.headers.get('Content-Length')
+                total_size = int(content_length) if content_length else 0
+                
+                # Download the file with progress for large files
+                downloaded = 0
+                chunk_size = 8192
                 with open(filename, 'wb') as f:
-                    f.write(response.read())
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        
+                        # Show progress for large files (>10MB)
+                        if total_size > 10000000 and downloaded % (chunk_size * 100) == 0:
+                            progress = (downloaded / total_size) * 100 if total_size > 0 else 0
+                            st.info(f"⬇️ Downloading {filename}: {progress:.1f}% ({downloaded / (1024*1024):.1f}/{total_size / (1024*1024):.1f} MB)")
             
             if os.path.exists(filename):
                 file_size = os.path.getsize(filename) / (1024 * 1024)  # Size in MB
@@ -79,9 +95,6 @@ def download_file(url, filename):
             else:
                 st.error(f"❌ File {filename} not created after download")
                 return False
-        except urllib.error.HTTPError as e:
-            st.error(f"❌ HTTP Error downloading {filename}: {e.code} {e.reason}")
-            return False
         except Exception as e:
             st.error(f"❌ Download failed for {filename}: {str(e)}")
             return False
