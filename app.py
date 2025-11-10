@@ -68,12 +68,19 @@ def load_model():
             model_url = st.secrets['MODEL_URL']
             if download_file(model_url, 'solar_model.pkl'):
                 try:
+                    # Verify file isn't empty
+                    file_size = os.path.getsize('solar_model.pkl')
+                    if file_size == 0:
+                        st.error("❌ Model file is empty")
+                        raise ValueError("Empty model file")
+                    
                     with open('solar_model.pkl', 'rb') as f:
                         model_data = pickle.load(f)
-                    st.success("✅ Loaded model from cloud storage")
+                    st.success(f"✅ Loaded model from solar_model.pkl ({file_size / (1024*1024):.1f} MB)")
                     return model_data
                 except Exception as e:
-                    st.warning(f"⚠️ Error loading cloud model: {e}")
+                    st.error(f"❌ Error loading model: {str(e)}")
+                    st.info("⚠️ Falling back to demo mode")
     except (FileNotFoundError, AttributeError):
         pass  # No secrets file, continue to local files
     
@@ -83,15 +90,22 @@ def load_model():
     for model_file in model_files:
         if os.path.exists(model_file):
             try:
+                # Verify file isn't empty
+                file_size = os.path.getsize(model_file)
+                if file_size == 0:
+                    st.warning(f"⚠️ {model_file} is empty, skipping")
+                    continue
+                    
                 with open(model_file, 'rb') as f:
                     model_data = pickle.load(f)
-                st.success(f"✅ Loaded model from {model_file}")
+                st.success(f"✅ Loaded model from {model_file} ({file_size / (1024*1024):.1f} MB)")
                 return model_data
             except Exception as e:
+                st.warning(f"⚠️ Error loading {model_file}: {str(e)}")
                 continue
     
     # If no model found, create a simple demo model
-    st.warning("⚠️ Pre-trained model not found. Using demo mode with simplified predictions.")
+    st.warning("⚠️ Pre-trained model not found or corrupted. Using demo mode with simplified predictions.")
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.preprocessing import StandardScaler
     
