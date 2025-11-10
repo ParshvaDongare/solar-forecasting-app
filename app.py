@@ -54,17 +54,20 @@ def load_model():
     """Load trained model or create a demo model"""
     import os
     
-    # Check for MODEL_URL in secrets
-    if hasattr(st, 'secrets') and 'MODEL_URL' in st.secrets:
-        model_url = st.secrets['MODEL_URL']
-        if download_file(model_url, 'solar_model.pkl'):
-            try:
-                with open('solar_model.pkl', 'rb') as f:
-                    model_data = pickle.load(f)
-                st.success("✅ Loaded model from cloud storage")
-                return model_data
-            except Exception as e:
-                st.warning(f"⚠️ Error loading cloud model: {e}")
+    # Check for MODEL_URL in secrets (safe check)
+    try:
+        if 'MODEL_URL' in st.secrets:
+            model_url = st.secrets['MODEL_URL']
+            if download_file(model_url, 'solar_model.pkl'):
+                try:
+                    with open('solar_model.pkl', 'rb') as f:
+                        model_data = pickle.load(f)
+                    st.success("✅ Loaded model from cloud storage")
+                    return model_data
+                except Exception as e:
+                    st.warning(f"⚠️ Error loading cloud model: {e}")
+    except (FileNotFoundError, AttributeError):
+        pass  # No secrets file, continue to local files
     
     # Try local model files
     model_files = ['solar_model.pkl', 'final_solar_forecasting_model_new_features.pkl']
@@ -105,17 +108,20 @@ def load_model():
 @st.cache_data
 def load_data():
     """Load dataset from cloud or local storage"""
-    # Check for DATA_URL in secrets
-    if hasattr(st, 'secrets') and 'DATA_URL' in st.secrets:
-        data_url = st.secrets['DATA_URL']
-        if download_file(data_url, 'final_combined_Data_CI.csv'):
-            try:
-                df = pd.read_csv('final_combined_Data_CI.csv')
-                df['DATE_TIME'] = pd.to_datetime(df['DATE_TIME'])
-                st.success("✅ Loaded data from cloud storage")
-                return df
-            except Exception as e:
-                st.warning(f"⚠️ Error loading cloud data: {e}")
+    # Check for DATA_URL in secrets (safe check)
+    try:
+        if 'DATA_URL' in st.secrets:
+            data_url = st.secrets['DATA_URL']
+            if download_file(data_url, 'final_combined_Data_CI.csv'):
+                try:
+                    df = pd.read_csv('final_combined_Data_CI.csv')
+                    df['DATE_TIME'] = pd.to_datetime(df['DATE_TIME'])
+                    st.success("✅ Loaded data from cloud storage")
+                    return df
+                except Exception as e:
+                    st.warning(f"⚠️ Error loading cloud data: {e}")
+    except (FileNotFoundError, AttributeError):
+        pass  # No secrets file, continue to local files
     
     # Try local file
     try:
