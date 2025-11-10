@@ -43,13 +43,22 @@ def download_file(url, filename):
             import urllib.request
             import urllib.error
             
-            # Create request with headers to avoid redirects
-            req = urllib.request.Request(
-                url,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-            )
+            # Create request with headers to avoid redirects and handle GitHub properly
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/octet-stream'  # Request binary data directly
+            }
+            
+            # For GitHub releases, we might need to handle redirects properly
+            import urllib.parse
+            parsed_url = urllib.parse.urlparse(url)
+            
+            # If it's a GitHub release URL, try to get direct asset link
+            if 'github.com' in parsed_url.netloc and '/releases/download/' in url:
+                st.info("🔧 Using GitHub release optimization")
+                headers['Accept'] = 'application/octet-stream'
+            
+            req = urllib.request.Request(url, headers=headers)
             
             with urllib.request.urlopen(req) as response:
                 # Check if we got redirected to HTML page
