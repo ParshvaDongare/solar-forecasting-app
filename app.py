@@ -41,7 +41,28 @@ def download_file(url, filename):
         try:
             st.info(f"⬇️ Downloading {filename} from cloud...")
             import urllib.request
-            urllib.request.urlretrieve(url, filename)
+            import urllib.error
+            
+            # Create request with headers to avoid redirects
+            req = urllib.request.Request(
+                url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            )
+            
+            with urllib.request.urlopen(req) as response:
+                # Check if we got redirected to HTML page
+                content_type = response.headers.get('Content-Type', '')
+                if 'text/html' in content_type:
+                    st.error(f"❌ Got HTML page instead of file (Content-Type: {content_type})")
+                    st.info("This usually means GitHub is redirecting to a download page")
+                    return False
+                
+                # Download the file
+                with open(filename, 'wb') as f:
+                    f.write(response.read())
+            
             if os.path.exists(filename):
                 file_size = os.path.getsize(filename) / (1024 * 1024)  # Size in MB
                 st.success(f"✅ Downloaded {filename} ({file_size:.1f} MB)")
@@ -49,6 +70,9 @@ def download_file(url, filename):
             else:
                 st.error(f"❌ File {filename} not created after download")
                 return False
+        except urllib.error.HTTPError as e:
+            st.error(f"❌ HTTP Error downloading {filename}: {e.code} {e.reason}")
+            return False
         except Exception as e:
             st.error(f"❌ Download failed for {filename}: {str(e)}")
             return False
