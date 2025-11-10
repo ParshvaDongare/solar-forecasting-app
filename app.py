@@ -39,13 +39,21 @@ def download_file(url, filename):
     """Download file from URL if not exists locally"""
     if not os.path.exists(filename):
         try:
-            st.info(f"Downloading {filename} from cloud...")
+            st.info(f"⬇️ Downloading {filename} from cloud...")
+            import urllib.request
             urllib.request.urlretrieve(url, filename)
-            st.success(f"✅ Downloaded {filename}")
-            return True
+            if os.path.exists(filename):
+                file_size = os.path.getsize(filename) / (1024 * 1024)  # Size in MB
+                st.success(f"✅ Downloaded {filename} ({file_size:.1f} MB)")
+                return True
+            else:
+                st.error(f"❌ File {filename} not created after download")
+                return False
         except Exception as e:
-            st.warning(f"⚠️ Could not download {filename}: {e}")
+            st.error(f"❌ Download failed for {filename}: {str(e)}")
             return False
+    else:
+        st.info(f"✅ Using existing {filename}")
     return True
 
 # Load the trained model
