@@ -9,12 +9,16 @@ import pickle
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
+import tempfile
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Global variables for cached data
 CACHED_MODEL = None
 CACHED_DATA = None
+
+# Environment: detect if running on Vercel
+IS_VERCEL = os.environ.get('VERCEL') == '1'
 
 
 def load_model():
@@ -24,29 +28,31 @@ def load_model():
     if CACHED_MODEL is not None:
         return CACHED_MODEL
     
-    # Try to load local model files
-    model_files = ['solar_model.pkl', 'final_solar_forecasting_model_new_features.pkl']
-    
-    for model_file in model_files:
-        if os.path.exists(model_file):
-            try:
-                file_size = os.path.getsize(model_file)
-                if file_size == 0:
+    # Try to load local model files (for development)
+    if not IS_VERCEL:
+        model_files = ['solar_model.pkl', 'final_solar_forecasting_model_new_features.pkl']
+        
+        for model_file in model_files:
+            if os.path.exists(model_file):
+                try:
+                    file_size = os.path.getsize(model_file)
+                    if file_size == 0:
+                        continue
+                        
+                    with open(model_file, 'rb') as f:
+                        model_data = pickle.load(f)
+                    CACHED_MODEL = model_data
+                    print(f"✅ Loaded model from {model_file}")
+                    return model_data
+                except Exception as e:
+                    print(f"⚠️ Error loading {model_file}: {e}")
                     continue
-                    
-                with open(model_file, 'rb') as f:
-                    model_data = pickle.load(f)
-                CACHED_MODEL = model_data
-                return model_data
-            except Exception as e:
-                print(f"Error loading {model_file}: {e}")
-                continue
     
-    # If no model found, create a simple demo model
+    # If no model found or on Vercel, create a demo model
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.preprocessing import StandardScaler
     
-    print("Using demo mode with simplified predictions.")
+    print("🚀 Using demo mode with simplified ML predictions.")
     demo_model = RandomForestRegressor(n_estimators=10, random_state=42)
     demo_scaler = StandardScaler()
     
@@ -72,15 +78,23 @@ def load_data():
     if CACHED_DATA is not None:
         return CACHED_DATA
     
-    try:
-        df = pd.read_csv('final_combined_Data_CI.csv')
-        df['DATE_TIME'] = pd.to_datetime(df['DATE_TIME'])
-        CACHED_DATA = df
-        return df
-    except FileNotFoundError:
-        return None
-    except Exception as e:
-        print(f"Error loading data: {e}")
+    # Only try to load from local if not on Vercel
+    if not IS_VERCEL:
+        try:
+            df = pd.read_csv('final_combined_Data_CI.csv')
+            df['DATE_TIME'] = pd.to_datetime(df['DATE_TIME'])
+            CACHED_DATA = df
+            print("✅ Loaded data from final_combined_Data_CI.csv")
+            return df
+        except FileNotFoundError:
+            print("⚠️ Data file not found locally")
+            return None
+        except Exception as e:
+            print(f"⚠️ Error loading data: {e}")
+            return None
+    else:
+        # On Vercel, data won't be available
+        print("ℹ️ Data not available on Vercel (not deployed for disk space reasons)")
         return None
 
 
@@ -217,7 +231,8 @@ def data_analysis():
         if df is None or len(df) == 0:
             return jsonify({
                 'success': False,
-                'message': 'No dataset available'
+                'message': 'No dataset available (data files not deployed to reduce size)',
+                'demo_mode': IS_VERCEL
             })
         
         # Summary statistics

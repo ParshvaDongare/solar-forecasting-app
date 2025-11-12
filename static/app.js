@@ -6,7 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
     setupSliderListeners();
     setupFormSubmission();
     loadDataAnalysis();
+    checkDeploymentStatus();
 });
+
+// Check deployment status and show banner if needed
+function checkDeploymentStatus() {
+    // Banner will be shown when we get demo_mode response from data-analysis
+    // This is done in the loadDataAnalysis function
+}
 
 // Initialize date picker with today's date
 function initializeDatePicker() {
@@ -156,6 +163,10 @@ async function loadDataAnalysis() {
         if (data.success) {
             displayDataAnalysis(data);
         } else {
+            // Show deployment banner if in demo mode
+            if (data.demo_mode) {
+                document.getElementById('deploymentBanner').style.display = 'block';
+            }
             document.getElementById('statsContainer').style.display = 'none';
             document.getElementById('noData').style.display = 'block';
         }

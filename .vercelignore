@@ -9,3 +9,5 @@ train_model.py
 .env
 .env.local
 secrets.toml*
+*.pkl
+*.csv
