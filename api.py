@@ -9,7 +9,6 @@ import pickle
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
-import tempfile
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
