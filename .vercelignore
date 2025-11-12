@@ -1,0 +1,11 @@
+*.ipynb
+*.pyc
+__pycache__
+.git
+.gitignore
+README.md
+test_*.py
+train_model.py
+.env
+.env.local
+secrets.toml*
