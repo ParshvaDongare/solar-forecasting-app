@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Power Forecasting System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark bg-dark sticky-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-sun"></i> Solar Power Forecasting System
+            </span>
+        </div>
+    </nav>
+
+    <!-- Deployment Info Banner -->
+    <div class="alert alert-info alert-dismissible fade show m-3" role="alert" id="deploymentBanner" style="display: none;">
+        <i class="fas fa-server"></i> <strong>Demo Mode:</strong> Running on Vercel with optimized model. Data analysis unavailable (files excluded for deployment).
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="prediction-tab" data-bs-toggle="tab" data-bs-target="#prediction" type="button" role="tab">
+                    <i class="fas fa-chart-line"></i> Prediction
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab">
+                    <i class="fas fa-database"></i> Data Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">
+                    <i class="fas fa-info-circle"></i> Model Info
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            <!-- Prediction Tab -->
+            <div class="tab-pane fade show active" id="prediction" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card shadow">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-sliders-h"></i> Make Predictions</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="predictionForm">
+                                    <div class="mb-4">
+                                        <h6 class="text-secondary">Environmental Parameters</h6>
+                                        <div class="mb-3">
+                                            <label for="irradiation" class="form-label">Solar Irradiation (W/m²)</label>
+                                            <input type="range" class="form-range" id="irradiation" min="0" max="1200" value="600" step="10">
+                                            <div class="small text-muted">Value: <span id="irradiation-value">600</span> W/m²</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="ambient_temp" class="form-label">Ambient Temperature (°C)</label>
+                                            <input type="range" class="form-range" id="ambient_temp" min="-10" max="50" value="25" step="0.5">
+                                            <div class="small text-muted">Value: <span id="ambient_temp-value">25</span> °C</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="module_temp" class="form-label">Module Temperature (°C)</label>
+                                            <input type="range" class="form-range" id="module_temp" min="-10" max="70" value="35" step="0.5">
+                                            <div class="small text-muted">Value: <span id="module_temp-value">35</span> °C</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <h6 class="text-secondary">Time Parameters</h6>
+                                        <div class="mb-3">
+                                            <label for="date" class="form-label">Date</label>
+                                            <input type="date" class="form-control" id="date">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="hour" class="form-label">Hour of Day</label>
+                                            <input type="range" class="form-range" id="hour" min="0" max="23" value="12" step="1">
+                                            <div class="small text-muted">Value: <span id="hour-value">12</span>:00</div>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                        <i class="fas fa-magic"></i> Predict AC Power
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div id="predictionResults" style="display: none;">
+                            <!-- Metrics -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card text-center shadow-sm">
+                                        <div class="card-body">
+                                            <div class="display-4 text-success" id="predictionValue">0.00</div>
+                                            <div class="text-muted">Predicted AC Power (kW)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-center shadow-sm">
+                                        <div class="card-body">
+                                            <div class="display-4 text-info" id="efficiencyValue">0.00</div>
+                                            <div class="text-muted">Estimated Efficiency (%)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card text-center shadow-sm">
+                                        <div class="card-body">
+                                            <div class="display-5 text-warning" id="dailyEstimate">0.00</div>
+                                            <div class="text-muted">Daily Estimate (kWh)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-center shadow-sm" id="demoModeCard" style="display: none;">
+                                        <div class="card-body">
+                                            <i class="fas fa-flask text-warning"></i>
+                                            <div class="text-muted">Demo Mode Active</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gauge Chart -->
+                            <div class="card shadow">
+                                <div class="card-body">
+                                    <div id="gaugeChart" style="height: 400px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="noPrediction" class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i> Fill in the parameters and click "Predict AC Power" to see results
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Analysis Tab -->
+            <div class="tab-pane fade" id="analysis" role="tabpanel">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-database"></i> Dataset Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="statsContainer">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h5 text-primary" id="totalRecords">-</div>
+                                        <div class="small text-muted">Total Records</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h5 text-primary" id="dateRange">-</div>
+                                        <div class="small text-muted">Date Range (days)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h5 text-success" id="avgPower">-</div>
+                                        <div class="small text-muted">Avg AC Power (kW)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h5 text-warning" id="maxPower">-</div>
+                                        <div class="small text-muted">Max AC Power (kW)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-area"></i> Correlation Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="correlationChart" style="height: 400px;"></div>
+                    </div>
+                </div>
+
+                <div id="noData" class="alert alert-warning mt-4" style="display: none;" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i> No dataset available for analysis
+                </div>
+            </div>
+
+            <!-- Model Info Tab -->
+            <div class="tab-pane fade" id="info" role="tabpanel">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-robot"></i> Model Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="mb-3">🏆 Best Performing Model: Random Forest Regressor</h6>
+
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h4 text-primary">0.380</div>
+                                        <div class="small text-muted">MAE (kW)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h4 text-primary">2.576</div>
+                                        <div class="small text-muted">RMSE (kW)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <div class="h4 text-success">1.000</div>
+                                        <div class="small text-muted">R² Score</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-4 mb-3">Features Used:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-secondary">Environmental Features</h6>
+                                <ul class="list-unstyled small">
+                                    <li><i class="fas fa-check text-success"></i> Solar Irradiation (W/m²)</li>
+                                    <li><i class="fas fa-check text-success"></i> Ambient Temperature (°C)</li>
+                                    <li><i class="fas fa-check text-success"></i> Module Temperature (°C)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-secondary">Advanced Features</h6>
+                                <ul class="list-unstyled small">
+                                    <li><i class="fas fa-check text-success"></i> Lag features (3 time steps)</li>
+                                    <li><i class="fas fa-check text-success"></i> Rolling mean features</li>
+                                    <li><i class="fas fa-check text-success"></i> Fourier time features</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-4" role="alert">
+                            <i class="fas fa-lightbulb"></i> <strong>Note:</strong> This model achieved excellent performance with advanced feature engineering including lag features, rolling statistics, and Fourier transformations for temporal patterns.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="spinner-overlay" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
