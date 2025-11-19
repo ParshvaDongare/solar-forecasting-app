@@ -11,3 +11,4 @@ train_model.py
 secrets.toml*
 *.pkl
 *.csv
+artifacts/
